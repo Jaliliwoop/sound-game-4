@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Sound Safari PRO | Clinical Articulation</title>
+<style>
+    :root {
+        --bg: #F4F7F6;
+        --surface: #FFFFFF;
+        --primary: #2B6CB0;
+        --primary-hover: #2C5282;
+        --accent: #ED8936;
+        --success: #48BB78;
+        --warning: #ECC94B;
+        --danger: #F56565;
+        --text-main: #2D3748;
+        --text-muted: #718096;
+        --border: #E2E8F0;
+        --shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+    }
+
+    * { box-sizing: border-box; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; }
+
+    body {
+        margin: 0; padding: 0; background: var(--bg); color: var(--text-main);
+        display: flex; justify-content: center; align-items: center;
+        height: 100dvh; overflow: hidden;
+    }
+
+    #app {
+        width: 100%; max-width: 600px; height: 100%; max-height: 850px;
+        background: var(--surface);
+        display: flex; flex-direction: column; position: relative;
+        box-shadow: var(--shadow);
+    }
+
+    @media (min-width: 600px) { #app { height: 95vh; border-radius: 24px; } }
+
+    /* --- View Routing --- */
+    .view { display: none; flex-direction: column; height: 100%; padding: 24px; overflow-y: auto; }
+    .view.active { display: flex; animation: fadeIn 0.3s ease-in-out; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* --- Typography & UI Elements --- */
+    h1 { font-size: 1.75rem; color: var(--primary); margin: 0 0 8px 0; text-align: center; }
+    p.subtitle { text-align: center; color: var(--text-muted); margin-top: 0; margin-bottom: 24px; font-size: 0.95rem; }
+    
+    label { font-weight: 600; font-size: 0.9rem; color: var(--text-main); margin-bottom: 6px; display: block; }
+    select, input, textarea {
+        width: 100%; padding: 12px 16px; border-radius: 12px;
+        border: 2px solid var(--border); background: #FAFAFA;
+        font-size: 1rem; color: var(--text-main); margin-bottom: 16px;
+        transition: border-color 0.2s;
+    }
+    select:focus, textarea:focus { outline: none; border-color: var(--primary); }
+
+    button {
+        width: 100%; padding: 16px; border: none; border-radius: 14px;
+        font-size: 1.1rem; font-weight: 600; cursor: pointer;
+        transition: transform 0.1s, background-color 0.2s;
+        display: flex; justify-content: center; align-items: center; gap: 8px;
+    }
+    button:active { transform: scale(0.98); }
+    
+    .btn-primary { background: var(--primary); color: white; }
+    .btn-primary:hover { background: var(--primary-hover); }
+    .btn-outline { background: transparent; border: 2px solid var(--border); color: var(--text-muted); }
+    
+    /* --- Session View Specifics --- */
+    .progress-bar { width: 100%; height: 6px; background: var(--border); border-radius: 3px; margin-bottom: 24px; overflow: hidden; }
+    .progress-fill { height: 100%; background: var(--accent); width: 0%; transition: width 0.3s ease; }
+
+    .flashcard {
+        flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center;
+        background: #FAFAFA; border: 2px solid var(--border); border-radius: 20px;
+        margin-bottom: 24px; padding: 20px; text-align: center;
+    }
+    .flashcard .emoji { font-size: 5rem; margin-bottom: 16px; line-height: 1; }
+    .flashcard .target-word { font-size: 2.5rem; font-weight: 800; margin: 0; color: var(--primary); letter-spacing: -0.5px; }
+    .flashcard .target-phrase { font-size: 1.5rem; color: var(--text-muted); margin-top: 8px; }
+
+    .audio-controls { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 24px; }
+    .btn-model { background: #EBF8FF; color: var(--primary); }
+    .btn-record { background: #FFF5F5; color: var(--danger); }
+    .btn-record.recording { background: var(--danger); color: white; animation: pulse 1.5s infinite; }
+    
+    @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(245, 101, 101, 0.4); } 70% { box-shadow: 0 0 0 15px rgba(245, 101, 101, 0); } 100% { box-shadow: 0 0 0 0 rgba(245, 101, 101, 0); } }
+
+    .playback-container { display: none; margin-bottom: 24px; width: 100%; }
+    .playback-container.active { display: flex; justify-content: center; }
+    audio { width: 100%; height: 40px; }
+
+    .scoring-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+    .btn-score-acc { background: #F0FFF4; color: var(--success); border: 1px solid var(--success); }
+    .btn-score-cue { background: #FFFFF0; color: #D69E2E; border: 1px solid var(--warning); }
+    .btn-score-inacc { background: #FFF5F5; color: var(--danger); border: 1px solid var(--danger); }
+
+    /* --- Report View Specifics --- */
+    .stat-box { background: #F7FAFC; border-radius: 12px; padding: 16px; text-align: center; margin-bottom: 16px; border: 1px solid var(--border); }
+    .stat-number { font-size: 2.5rem; font-weight: bold; color: var(--primary); }
+    
+    textarea { height: 120px; resize: none; }
+
+    .disclaimer { font-size: 0.75rem; color: var(--text-muted); text-align: center; margin-top: auto; padding-top: 20px; }
+</style>
+</head>
+<body>
+
+<div id="app">
+
+    <div id="view-setup" class="view active">
+        <h1>Sound Safari PRO</h1>
+        <p class="subtitle">Clinical Articulation Platform</p>
+
+        <label for="target-sound">Target Phoneme</label>
+        <select id="target-sound">
+            <option value="S">/s/ Sound</option>
+            <option value="R">/r/ Sound</option>
+            <option value="L">/l/ Sound</option>
+            <option value="TH">/th/ Sound</option>
+        </select>
+
+        <label for="word-position">Word Position</label>
+        <select id="word-position">
+            <option value="initial">Initial</option>
+            <option value="medial">Medial</option>
+            <option value="final">Final</option>
+        </select>
+
+        <label for="complexity">Complexity Level</label>
+        <select id="complexity">
+            <option value="word">Single Words</option>
+            <option value="phrase">Phrases</option>
+            <option value="sentence">Sentences</option>
+        </select>
+
+        <div style="margin-top: auto;">
+            <button class="btn-primary" onclick="app.initializeSession()">Start Session</button>
+            <div class="disclaimer">Educational articulation tool only. Not a substitute for clinical diagnostics.</div>
+        </div>
+    </div>
+
+    <div id="view-session" class="view">
+        <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+        
+        <div style="display: flex; justify-content: space-between; font-size: 0.9rem; font-weight: bold; color: var(--text-muted); margin-bottom: 16px;">
+            <span id="target-label">/s/ Initial</span>
+            <span id="trial-counter">Trial 1 / 10</span>
+        </div>
+
+        <div class="flashcard">
+            <div class="emoji" id="fc-emoji">❓</div>
+            <div class="target-word" id="fc-word">Loading...</div>
+            <div class="target-phrase" id="fc-phrase"></div>
+        </div>
+
+        <div class="audio-controls">
+            <button class="btn-model" onclick="app.playModel()">🔊 Model</button>
+            <button class="btn-record" id="btn-record" onclick="app.toggleRecord()">🎤 Record</button>
+        </div>
+
+        <div class="playback-container" id="playback-container">
+            <audio id="audio-playback" controls></audio>
+        </div>
+
+        <label style="text-align: center; margin-bottom: 12px;">Clinical Scoring</label>
+        <div class="scoring-grid">
+            <button class="btn-score-acc" onclick="app.scoreTrial('Accurate')">✔ Accurate</button>
+            <button class="btn-score-cue" onclick="app.scoreTrial('Cued')">🔄 Cued</button>
+            <button class="btn-score-inacc" onclick="app.scoreTrial('Inaccurate')">✖ Inaccurate</button>
+        </div>
+    </div>
+
+    <div id="view-report" class="view">
+        <h1>Session Summary</h1>
+        <p class="subtitle" id="report-date"></p>
+
+        <div class="stat-box">
+            <div style="font-size: 0.9rem; font-weight: bold; color: var(--text-muted);">Independent Accuracy</div>
+            <div class="stat-number" id="accuracy-score">0%</div>
+        </div>
+
+        <label>Clinical Notes</label>
+        <textarea id="clinical-notes" placeholder="Session observations, cueing strategies, or notes for Montana's files..."></textarea>
+
+        <div style="margin-top: auto; display: flex; flex-direction: column; gap: 12px;">
+            <button class="btn-primary" onclick="app.resetApp()">Finish & Clear Session</button>
+        </div>
+    </div>
+
+</div>
+
+<script>
+// --- Clinical Data Library ---
+const clinicalData = {
+    "S": {
+        "initial": [
+            { w: "Sun", e: "☀️", p: "The hot sun", s: "The sun is shining brightly today." },
+            { w: "Soap", e: "🧼", p: "Wash with soap", s: "Use the soap to wash your hands." },
+            { w: "Sock", e: "🧦", p: "A red sock", s: "I lost my red sock in the laundry." },
+            { w: "Soup", e: "🥣", p: "Hot soup", s: "The hot soup burned my tongue." }
+        ]
+        // Medial and Final arrays would be populated similarly in production
+    },
+    "R": {
+        "initial": [
+            { w: "Robot", e: "🤖", p: "A fast robot", s: "The robot walks across the floor." },
+            { w: "Red", e: "🟥", p: "The red car", s: "My favorite color is red." },
+            { w: "Rabbit", e: "🐰", p: "A cute rabbit", s: "The rabbit hopped into the garden." }
+        ]
+    }
+    // L and TH data structures would follow
+};
+
+// --- Core Application Logic ---
+const app = {
+    state: {
+        queue: [],
+        currentIndex: 0,
+        results: { accurate: 0, cued: 0, inaccurate: 0, total: 0 },
+        mediaRecorder: null,
+        audioChunks: [],
+        isRecording: false
+    },
+
+    // 1. Navigation & Setup
+    showView(viewId) {
+        document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+        document.getElementById(viewId).classList.add('active');
+    },
+
+    initializeSession() {
+        const sound = document.getElementById('target-sound').value;
+        const pos = document.getElementById('word-position').value;
+        const complexity = document.getElementById('complexity').value;
+
+        // Fallback safety if library segment is empty for demo
+        const rawList = (clinicalData[sound] && clinicalData[sound][pos]) ? clinicalData[sound][pos] : clinicalData["S"]["initial"];
+        
+        // Map data based on chosen complexity
+        this.state.queue = rawList.map(item => ({
+            emoji: item.e,
+            target: complexity === 'word' ? item.w : (complexity === 'phrase' ? item.p : item.s),
+            displayWord: item.w
+        }));
+
+        this.state.currentIndex = 0;
+        this.state.results = { accurate: 0, cued: 0, inaccurate: 0, total: this.state.queue.length };
+        
+        document.getElementById('target-label').innerText = `/${sound}/ - ${pos.charAt(0).toUpperCase() + pos.slice(1)}`;
+        
+        this.setupMicrophone();
+        this.loadTrial();
+        this.showView('view-session');
+    },
+
+    // 2. Audio Subsystem (Web Audio API)
+    async setupMicrophone() {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            this.state.mediaRecorder = new MediaRecorder(stream);
+            
+            this.state.mediaRecorder.ondataavailable = (event) => {
+                this.state.audioChunks.push(event.data);
+            };
+
+            this.state.mediaRecorder.onstop = () => {
+                const audioBlob = new Blob(this.state.audioChunks, { type: 'audio/webm' });
+                const audioUrl = URL.createObjectURL(audioBlob);
+                const audioEl = document.getElementById('audio-playback');
+                audioEl.src = audioUrl;
+                document.getElementById('playback-container').classList.add('active');
+                this.state.audioChunks = []; // Reset for next recording
+            };
+        } catch (err) {
+            console.warn("Microphone access denied or unavailable. App will function in offline mode.");
+        }
+    },
+
+    toggleRecord() {
+        const btn = document.getElementById('btn-record');
+        if (!this.state.mediaRecorder) return alert("Microphone not available.");
+
+        if (!this.state.isRecording) {
+            this.state.mediaRecorder.start();
+            this.state.isRecording = true;
+            btn.innerHTML = "⏹ Stop";
+            btn.classList.add('recording');
+            document.getElementById('playback-container').classList.remove('active');
+        } else {
+            this.state.mediaRecorder.stop();
+            this.state.isRecording = false;
+            btn.innerHTML = "🎤 Record";
+            btn.classList.remove('recording');
+        }
+    },
+
+    playModel() {
+        const currentItem = this.state.queue[this.state.currentIndex];
+        const utterance = new SpeechSynthesisUtterance(currentItem.target);
+        utterance.rate = 0.85; // Slightly slower for clinical modeling
+        window.speechSynthesis.speak(utterance);
+    },
+
+    // 3. Therapy Loop
+    loadTrial() {
+        if (this.state.currentIndex >= this.state.queue.length) {
+            return this.finishSession();
+        }
+
+        const item = this.state.queue[this.state.currentIndex];
+        const complexity = document.getElementById('complexity').value;
+
+        document.getElementById('fc-emoji').innerText = item.emoji;
+        
+        if (complexity === 'word') {
+            document.getElementById('fc-word').innerText = item.target;
+            document.getElementById('fc-phrase').innerText = "";
+        } else {
+            document.getElementById('fc-word').innerText = item.displayWord;
+            document.getElementById('fc-phrase').innerText = item.target;
+        }
+
+        document.getElementById('trial-counter').innerText = `Trial ${this.state.currentIndex + 1} / ${this.state.queue.length}`;
+        
+        const progress = (this.state.currentIndex / this.state.queue.length) * 100;
+        document.getElementById('progress-fill').style.width = `${progress}%`;
+        
+        document.getElementById('playback-container').classList.remove('active');
+    },
+
+    scoreTrial(scoreType) {
+        if (scoreType === 'Accurate') this.state.results.accurate++;
+        if (scoreType === 'Cued') this.state.results.cued++;
+        if (scoreType === 'Inaccurate') this.state.results.inaccurate++;
+        
+        this.state.currentIndex++;
+        
+        // Stop recording if moving to next word while mic is hot
+        if(this.state.isRecording) this.toggleRecord(); 
+        
+        this.loadTrial();
+    },
+
+    // 4. End of Session
+    finishSession() {
+        document.getElementById('progress-fill').style.width = `100%`;
+        const accPct = Math.round((this.state.results.accurate / this.state.results.total) * 100) || 0;
+        
+        document.getElementById('accuracy-score').innerText = `${accPct}%`;
+        document.getElementById('report-date').innerText = new Date().toLocaleDateString('en-AU', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+        
+        this.showView('view-report');
+    },
+
+    resetApp() {
+        document.getElementById('clinical-notes').value = "";
+        this.showView('view-setup');
+    }
+};
+</script>
+</body>
+</html>
